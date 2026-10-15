@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Online Bookstore</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font:16px Arial;background:#f7f5f0;color:#292d32}header{background:#4b2e20;color:white;padding:26px 7%}main{max-width:1100px;margin:24px auto;padding:0 18px}.tools{display:flex;gap:10px;flex-wrap:wrap}input,select,button{padding:10px;border-radius:7px;border:1px solid #bbb}button{background:#4b2e20;color:white;cursor:pointer}.books{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-top:20px}.book{background:white;padding:18px;border-radius:12px;box-shadow:0 3px 14px #0001}.price{font-weight:bold;color:#177245}.available{color:#177245}.limited{color:#a65b00}#cart{background:white;padding:18px;border-radius:10px;margin-top:24px}footer{text-align:center;padding:24px}
+</style></head><body><header><h1>PageTurner Bookstore</h1><p>Browse books, add them to your cart and place a demo order.</p></header>
+<main><div class="tools"><input id="search" placeholder="Search title or author" oninput="renderBooks()"><select id="category" onchange="renderBooks()"><option value="">All categories</option><option>Technology</option><option>Fiction</option><option>Science</option><option>Business</option></select></div>
+<section id="books" class="books"></section><section id="cart"><h2>Shopping Cart</h2><p id="cartItems">Your cart is empty.</p><button onclick="checkout()">Place demo order</button><p id="status" aria-live="polite"></p></section></main><footer>PageTurner Bookstore · Demo store (no real payments)</footer>
+<script>
+const books=[
+{title:"Clean Code",author:"Robert C. Martin",category:"Technology",price:650,available:true},
+{title:"The Pragmatic Programmer",author:"Andrew Hunt",category:"Technology",price:720,available:true},
+{title:"The Hobbit",author:"J. R. R. Tolkien",category:"Fiction",price:399,available:true},
+{title:"A Brief History of Time",author:"Stephen Hawking",category:"Science",price:450,available:false},
+{title:"Atomic Habits",author:"James Clear",category:"Business",price:499,available:true},
+{title:"Dune",author:"Frank Herbert",category:"Fiction",price:550,available:true}];
+let cart=[];
+function renderBooks(){let q=document.getElementById('search').value.toLowerCase(),cat=document.getElementById('category').value;document.getElementById('books').innerHTML=books.filter(b=>(b.title+' '+b.author).toLowerCase().includes(q)&&(!cat||b.category===cat)).map(b=>`<article class="book"><h3>${b.title}</h3><p>By ${b.author}</p><p>Category: ${b.category}</p><p class="price">₹${b.price}</p><p class="${b.available?'available':'limited'}">${b.available?'In stock':'Out of stock'}</p><button ${b.available?'':'disabled'} onclick="add('${b.title.replace(/'/g,"\\'")}')">Add to cart</button></article>`).join('')||'<p>No books found.</p>'}
+function add(title){cart.push(title);document.getElementById('cartItems').textContent=cart.join(', ');document.getElementById('status').textContent=''}
+function checkout(){document.getElementById('status').textContent=cart.length?'Demo order placed! Order status: Confirmed.':'Add a book before placing an order.';if(cart.length){cart=[];document.getElementById('cartItems').textContent='Your cart is empty.'}}
+renderBooks();
+</script></body></html>
