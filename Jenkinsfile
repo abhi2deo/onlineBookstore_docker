@@ -38,26 +38,61 @@ pipeline {
                 }
             }
         }
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG_FILE')]) {
-                    sh '''
-                      export KUBECONFIG="$KUBECONFIG_FILE"
-                      kubectl apply -f deployment.yaml
-                      kubectl set image deployment/$DEPLOYMENT web=$IMAGE
-                      if ! kubectl rollout status deployment/$DEPLOYMENT --timeout=120s; then
-                        echo "Rollout failed; restoring previous stable revision"
-                        kubectl rollout undo deployment/$DEPLOYMENT
-                        kubectl rollout status deployment/$DEPLOYMENT --timeout=120s
-                        exit 1
-                      fi
-                      kubectl get pods -l app=$DEPLOYMENT
-                      kubectl get service online-bookstore-service
-                    '''
+       
+stage('Deploy and Auto Rollback') {
+    steps {
+        script {
+            def deployImage = params.SIMULATE_FAILURE
+                ? 'YOUR_DOCKERHUB_USERNAME/online-bookstore:broken-demo'
+                : env.IMAGE
+
+            withCredentials([
+                file(credentialsId: 'kubeconfig',
+                     variable: 'KUBECONFIG_FILE')
+            ]) {
+                def result = bat(
+                    returnStatus: true,
+                    script: """
+                        @echo off
+                        set KUBECONFIG=%KUBECONFIG_FILE%
+
+                        echo Deploying Bookstore image...
+                        kubectl set image deployment/online-bookstore web=${deployImage}
+
+                        if errorlevel 1 exit /b 1
+
+                        echo Checking rollout...
+                        kubectl rollout status deployment/online-bookstore --timeout=90s
+
+                        if errorlevel 1 (
+                            echo FAILED ROLLOUT DETECTED
+                            echo Rolling back to previous stable version...
+
+                            kubectl rollout undo deployment/online-bookstore
+                            if errorlevel 1 exit /b 1
+
+                            kubectl rollout status deployment/online-bookstore --timeout=120s
+                            if errorlevel 1 exit /b 1
+
+                            echo ROLLBACK SUCCESSFUL
+                            exit /b 1
+                        )
+
+                        echo BOOKSTORE DEPLOYMENT SUCCESSFUL
+                    """
+                )
+
+                if (result != 0 && !params.SIMULATE_FAILURE) {
+                    error('Bookstore deployment failed.')
+                }
+
+                if (result != 0) {
+                    echo 'Failure detected. Check rollback status and application.'
                 }
             }
         }
     }
+
     post {
         always { echo 'Pipeline finished. Check stage logs for the result.' }
     }
