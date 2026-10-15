@@ -1,3 +1,10 @@
+parameters {
+    booleanParam(
+        name: 'SIMULATE_FAILURE',
+        defaultValue: false,
+        description: 'Deploy a faulty image to test automatic rollback'
+    )
+}
 pipeline {
     agent any
     environment {
